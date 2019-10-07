@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#script_dir="/home2/db/HIV-cluster/"
 script_dir=$(pwd)
 
 FASTA=""
