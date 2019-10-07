@@ -1,7 +1,7 @@
 #!/bin/bash
 
-script_dir="/home2/db/HIV-cluster/"
-
+#script_dir="/home2/db/HIV-cluster/"
+script_dir=$(pwd)
 
 FASTA=""
 REF="${script_dir}/HIV_aligned_references.fasta"
@@ -69,7 +69,7 @@ echo "Finished generating reports."
 OUTPUT="$now.$FILENAME.fasta"
 # Run alignment
 echo "Running mafft alignment. Will save to :  $OUTPUT"
-#mafft --add $REF --reorder $FASTA > $OUTPUT
+
 mafft --add $FASTA --reorder $REF > $OUTPUT
 wait
 

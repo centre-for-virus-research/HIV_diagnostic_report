@@ -32,6 +32,10 @@ if __name__ == "__main__":
     now = datetime.datetime.now()
     if now.month < 10:
         time_now = (str(now.day) + "-0" +str(now.month) + "-" + str(now.year))
+    elif now.day <10:
+        time_now = ("0" +str(now.day) + "-" +str(now.month) + "-" + str(now.year))
+    elif now.month < 10 and now.day <10:
+        time_now = ("0" +str(now.day) + "-0" +str(now.month) + "-" + str(now.year))
     else:
         time_now =(str(now.day) + "-" +str(now.month) + "-" + str(now.year))
 
