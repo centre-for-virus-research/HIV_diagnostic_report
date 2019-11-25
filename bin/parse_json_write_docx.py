@@ -19,6 +19,7 @@ if __name__ == "__main__":
     json_in = ""
     subtype_output = ""
 
+# get user input - json returned from stanford DB and optional output file name
     if args.json:
         json_in = args.json
     else:
@@ -28,7 +29,7 @@ if __name__ == "__main__":
         subtype_output = args.output
     else:
         subtype_output = "subtypes.txt"
-
+# set the current date for output files
     now = datetime.datetime.now()
     if now.month < 10:
         time_now = (str(now.day) + "-0" +str(now.month) + "-" + str(now.year))
@@ -38,7 +39,7 @@ if __name__ == "__main__":
         time_now = ("0" +str(now.day) + "-0" +str(now.month) + "-" + str(now.year))
     else:
         time_now =(str(now.day) + "-" +str(now.month) + "-" + str(now.year))
-
+# generate the reports folder if it doesn't already exist
     path = time_now + "_reports/"
     if args.reports:
         try:
@@ -50,9 +51,12 @@ if __name__ == "__main__":
 # parse the sierrapy json output for relevant information - subtype and DRMs
     with open(json_in) as json_file:
         data = json.load(json_file)
-
+        # loop through each sample in the json file
         for i in data:
+            # get the sample name
             sample = i['inputSequence']['header']
+            # set the name of the report for this sample
+            # create the document and add the first header
             report_file_name = path +  sample + "_report.docx"
             document = Document()
             document.add_heading("Sequence Summary", level=1)
@@ -61,7 +65,7 @@ if __name__ == "__main__":
                 start = j["firstAA"]
                 end = j["lastAA"]
                 gene = j["gene"]["name"]
-
+                # add the sequence information under the first header "Sequence Summary"
                 p1 = document.add_paragraph("Sequence includes " + gene +": codons " + str(start) + "-" + str(end))
 # subtype information
             subtype = i['subtypeText']
@@ -76,13 +80,16 @@ if __name__ == "__main__":
                 #print ("Complex subtype. Sample will be passed to SCUEAL:\t" + sample + "\t" + subtype)
                 subtype_message = subtype + "\tThis info will be updated by SCUEAL"
                 sample2subtype[sample] = subtype
+            # add the subtype to the output document under the first header   
             p2 = document.add_paragraph(subtype_message)
 
 # Drug resistance information
             for j in i["drugResistance"]:
                 currentGene = j["gene"]["name"]
+                # loop - add the second and third headers to the document "Drug Resistance Interpretation" 1- PR 2- RT 
                 document.add_heading ("Drug Resistance Interpretation: " + currentGene + "\n", level=1)
                 mutations_dict = {}
+                # get mutation lists for each gene i.e."Major, Accessory, Other"/ "NRTI, NNRTI, Other"
                 for k in j["mutationsByTypes"]:
                     mutation_type = k["mutationType"]
                     mutation_list = []
@@ -96,7 +103,7 @@ if __name__ == "__main__":
                         mutation_string = ", ".join(mutation_list)
                     mutations_dict[mutation_type] = mutation_string
 
-
+                # set values for required drug scores - handled slightly differently for PR and RT drugs (PR has PIs and RT has NRTIs and NNRTIs)
                 scores_dict = {}
                 numerical_scores_dict = {}
                 drug_class = ""
@@ -109,15 +116,18 @@ if __name__ == "__main__":
                 drug_value = ""
                 m_info = {}
 
-
+                # drug scores for RT - the more complex case
                 if currentGene == 'RT':
+                    # create a dictionary for each drug class
                     N = {}
                     NN = {}
+                    # write the mutation info from the previously generated dictionary
                     for key, value in mutations_dict.items():
                         if key == 'Other':
                             p3 = document.add_paragraph(key + " Mutations: " + value)
                         else:
                             p3 = document.add_paragraph(key + " Resistance Mutations: " + value)
+                    # set all the relevant values for this drug        
                     for k in j["drugScores"]:
                         drug_class = k["drugClass"]["name"]
                         drug_name = k["drug"]["name"]
@@ -125,8 +135,9 @@ if __name__ == "__main__":
                         drug_fullname = k["drug"]["fullName"]
                         drug_score = k["score"]
                         drug_text = k["text"]
-
+                        # create the drug ID that will be written to file
                         drug_id = drug_fullname + " (" + drug_abbr + ") "
+                        # get the drug values that will be written out to the report, drug_score = numeric value, normally 0.0 and drug_text is "Susceptible, low-level resistance' etc.
                         drug_value = [drug_score, drug_text]
                         if drug_class == "NRTI":
                             N[drug_id] = drug_value
@@ -136,6 +147,7 @@ if __name__ == "__main__":
                         m_name = ""
                         m_type = ""
                         m_text = ""
+                        # if the drug score is not 0 - parse the detailed drug score information and extract the comments
                         if drug_score != 0.0:
 
                             for p in k["partialScores"]:
@@ -147,6 +159,11 @@ if __name__ == "__main__":
                                             if x == 'comments':
                                                 m_text = y[0]["text"]
                                             m_info[m_name] = m_text
+
+                    # I THINK THIS IS WHERE WE WOULD ADD TABLES
+                    # WOULD BE SEPARATE TABLES: 1- Drug resistance interpretation table for each drug class 2- mutation scoring for each drug class
+                    
+                    # add headings for each drug class and add the drug name + "\t" +  drug_text                        
                     document.add_heading("Nucleoside Reverse Transcriptase Inhibitors", level=2)
                     p4 = document.add_paragraph()
                     for key, value in N.items():
@@ -158,7 +175,7 @@ if __name__ == "__main__":
                     for key, value in NN.items():
                         p5.add_run(key).bold = True
                         p5.add_run("\t" + value[1] + "\n")
-
+                    # add headings for each drug class and add the drug name + "\t" +  drug_score 
                     document.add_heading ("Mutation Scoring: " + currentGene + "\n", level=1)
                     p7 = document.add_paragraph("Nucleoside Reverse Transcriptase Inhibitors\n")
                     for key, value in N.items():
@@ -184,15 +201,16 @@ if __name__ == "__main__":
                         for key, value in m_info.items():
                             p9 = document.add_paragraph(value, style='List Bullet')
 
-
+                # drug scores for PR - uses a lot of the same code so this script could be written a lot better but it works!
                 elif currentGene =='PR' or currentGene == 'IN':
+                    # write the mutation info from the previously generated dictionary
                     for key, value in mutations_dict.items():
                         if key == 'Other':
                             p3 = document.add_paragraph(drug_class + " " + key + " Mutations: " + value)
                         else:
                             p3 = document.add_paragraph(drug_class + " " + key + " Resistance Mutations: " + value)
 
-
+                    # set all the relevant values for this drug
                     for k in j["drugScores"]:
                         drug_class = k["drugClass"]["name"]
                         drug_name = k["drug"]["name"]
@@ -200,7 +218,7 @@ if __name__ == "__main__":
                         drug_fullname = k["drug"]["fullName"]
                         drug_score = k["score"]
                         drug_text = k["text"]
-
+                        # create the drug ID that will be written to file 
                         drug_id = drug_fullname + " (" + drug_abbr + ") "
                         drug_value = [drug_score, drug_text]
 
@@ -209,6 +227,7 @@ if __name__ == "__main__":
                         m_name = ""
                         m_type = ""
                         m_text = ""
+                        # if the drug score is not 0 - parse the detailed drug score information and extract the comments
                         if drug_score != 0.0:
 
                             for p in k["partialScores"]:
@@ -221,7 +240,8 @@ if __name__ == "__main__":
                                                 m_text = y[0]["text"]
                                             m_info[m_name] = m_text
 
-
+                    
+                    # I THINK THIS IS WHERE WE WOULD ADD TABLES for PR: 1- Drug Resistance Interpretation 2- mutation scoring
                     document.add_heading(drug_class, level=2)
                     p4 = document.add_paragraph()
 
@@ -250,6 +270,7 @@ if __name__ == "__main__":
             if args.reports:
                # print ("Saving report: " + report_file_name)
                 document.save(report_file_name)
+    # writes tab delimited file where each sample and its subtype are a row            
     with open(subtype_output, "w+") as out:
         for i in sample2subtype:
             out.write(i + "\t" + sample2subtype[i] + "\n")

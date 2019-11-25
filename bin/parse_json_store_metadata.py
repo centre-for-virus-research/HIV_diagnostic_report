@@ -84,5 +84,3 @@ df = pd.DataFrame(append_list, columns = header_list)
 df.set_index('SampleID', inplace=True)
 df.to_csv(output_file, sep='\t')
 
-
-

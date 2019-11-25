@@ -1,6 +1,7 @@
 #!/bin/bash
 
-script_dir=$(pwd)
+#script_dir=$(pwd)
+script_dir='/home2/db/HIV-cluster'
 
 FASTA=""
 REF="${script_dir}/HIV_aligned_references.fasta"
@@ -36,6 +37,9 @@ then
         echo "Missing parameter - fasta file!"
         exit 0
 fi
+
+mac2unix $FASTA
+wait
 
 # use code from getSubtypeInformation.sh to perform subtype query
 
