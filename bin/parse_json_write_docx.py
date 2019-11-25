@@ -3,6 +3,7 @@
 
 import json
 import argparse
+import errno
 import os as os
 from docx import Document
 import datetime 
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     if args.reports:
         try:
             os.makedirs(os.path.dirname(path))
-        except OSError as ecx:
+        except OSError as exc:
             if exc.errno != errno.EEXIST:
                 raise
 
